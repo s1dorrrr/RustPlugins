@@ -34,6 +34,27 @@ namespace Oxide.Plugins
                 tempVKIDs.Remove(player.UserIDString);
             }
         }
+
+        private void OnServerInitialized()
+        {
+            cmd.AddConsoleCommand("reportlist", this, "ReportListCommand");
+            LoadData();
+            string log = $"1: {config.TGTOKEN}\n 2: {config.TGCHATID}\n 3: {config.SuspectPerm}\n 4: {config.ModerPerm}";
+            Puts(log);
+        }
+
+        void OnServerSave()
+        {
+            Interface.Oxide.DataFileSystem.WriteObject(Name + "/Reports", PlayerReports);
+        }
+
+        void LoadData()
+        {
+            if (Interface.Oxide.DataFileSystem.ExistsDatafile(Name + "/Reports"))
+                PlayerReports = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<ulong, UserReportData>>(Name + "/Reports");
+            else
+                Interface.Oxide.DataFileSystem.WriteObject(Name + "/Reports", PlayerReports = new Dictionary<ulong, UserReportData>());
+        }
         private Dictionary<string, string> tempVKIDs = new Dictionary<string, string>();
 
         #endregion
@@ -504,17 +525,14 @@ namespace Oxide.Plugins
                 VKLog(message);
                 return;
             }
-
-            string text = lang.GetMessage("MSG.FROM", this, player.Id);
-            text += args[1];
-            SendReply(targetPlayer, text);
+            SendReply(targetPlayer, $"{lang.GetMessage("MSG.FROM", this, player.Id)} {args[1]}");
             var notice = "Сообщение от модератора";
             targetPlayer.SendConsoleCommand("gametip.showgametip", notice);
             timer.Once(5f, () =>
             {
                 targetPlayer.SendConsoleCommand("gametip.hidegametip");
             });
-            string resp = $"Игрок {targetPlayer} получил сообщение: {text}";
+            string resp = $"Игрок {targetPlayer} получил сообщение: {lang.GetMessage("MSG.FROM", this, player.Id)} {args[1]}";
             VKLog(resp);
         }
         [ChatCommand("discord")]
@@ -636,13 +654,7 @@ namespace Oxide.Plugins
             VKLog(reportMessage);
 
         }
-        void LoadData()
-        {
-            if (Interface.Oxide.DataFileSystem.ExistsDatafile(Name + "/Reports"))
-                PlayerReports = Interface.Oxide.DataFileSystem.ReadObject<Dictionary<ulong, UserReportData>>(Name + "/Reports");
-            else
-                Interface.Oxide.DataFileSystem.WriteObject(Name + "/Reports", PlayerReports = new Dictionary<ulong, UserReportData>());
-        }
+
         [ConsoleCommand("reportlist")]
         private void ReportListCommand()
         {
@@ -663,18 +675,7 @@ namespace Oxide.Plugins
             VKLog(reportListMsg);
         }
 
-        private void OnServerInitialized()
-        {
-            cmd.AddConsoleCommand("reportlist", this, "ReportListCommand");
-            LoadData();
-            string log = $"1: {config.TGTOKEN}\n 2: {config.TGCHATID}\n 3: {config.SuspectPerm}\n 4: {config.ModerPerm}";
-            Puts(log);
-        }
 
-        void OnServerSave()
-        {
-            Interface.Oxide.DataFileSystem.WriteObject(Name + "/Reports", PlayerReports);
-        }
 
         public class Report
         {
